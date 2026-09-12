@@ -154,6 +154,12 @@ const autoCalculateStatus = (item) => {
 };
 
 export default function App() {
+  const CORRECT_PIN = "1234";
+  const [pinInput, setPinInput] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('kalachandji_auth') === 'true';
+  });
+
   const [inventory, setInventory] = useState(() => {
     const saved = localStorage.getItem('kalachandji_831_inventory_v3');
     return saved ? JSON.parse(saved) : INITIAL_DATA;
@@ -185,22 +191,34 @@ export default function App() {
   const [isPOModalOpen, setIsPOModalOpen] = useState(false);
   const [newItemForm, setNewItemForm] = useState({ location: '', item: '', unit: '', minStock: '', onHand: '' });
 
-  // Sync state to LocalStorage
   useEffect(() => {
-    if (!viewingHistory) {
+    if (!viewingHistory && isAuthenticated) {
       localStorage.setItem('kalachandji_831_inventory_v3', JSON.stringify(inventory));
     }
-  }, [inventory, viewingHistory]);
+  }, [inventory, viewingHistory, isAuthenticated]);
 
   useEffect(() => {
-    if (!viewingHistory) {
+    if (!viewingHistory && isAuthenticated) {
       localStorage.setItem('kalachandji_831_date_v3', trackingDate);
     }
-  }, [trackingDate, viewingHistory]);
+  }, [trackingDate, viewingHistory, isAuthenticated]);
 
   useEffect(() => {
-    localStorage.setItem('kalachandji_831_history_v3', JSON.stringify(historyLogs));
-  }, [historyLogs]);
+    if (isAuthenticated) {
+      localStorage.setItem('kalachandji_831_history_v3', JSON.stringify(historyLogs));
+    }
+  }, [historyLogs, isAuthenticated]);
+
+  const handlePinSubmit = (e) => {
+    e.preventDefault();
+    if (pinInput === CORRECT_PIN) {
+      sessionStorage.setItem('kalachandji_auth', 'true');
+      setIsAuthenticated(true);
+    } else {
+      alert('Incorrect PIN');
+      setPinInput('');
+    }
+  };
 
   const handleSnapshotChange = (key) => {
     setSelectedSnapshotKey(key);
@@ -419,6 +437,29 @@ export default function App() {
     });
     return text;
   }, [inventory, trackingDate]);
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f8fafc', padding: '20px' }}>
+        <form onSubmit={handlePinSubmit} style={{ background: '#fff', padding: '32px', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: '360px', width: '100%' }}>
+          <h2 style={{ marginTop: 0 }}>Kalachandji's Inventory</h2>
+          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Enter team PIN to access</p>
+          <input 
+            type="password" 
+            pattern="[0-9]*" 
+            inputMode="numeric"
+            maxLength={6}
+            value={pinInput}
+            onChange={(e) => setPinInput(e.target.value)}
+            placeholder="PIN"
+            style={{ width: '100%', padding: '12px', fontSize: '1.2rem', textAlign: 'center', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '16px', boxSizing: 'border-box' }}
+            autoFocus
+          />
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>Enter</button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
